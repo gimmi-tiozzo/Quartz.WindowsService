@@ -4,10 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{6B3CBE26-5317-43A5-9E83-FE98F3F3C712}</ProjectGuid>
+    <ProjectGuid>{E3974272-E8E8-49DF-8E29-86C63B5ADCE6}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>Quartz.RootProcess</RootNamespace>
-    <AssemblyName>Quartz.RootProcess</AssemblyName>
+    <RootNamespace>Quartz.ChildProcess</RootNamespace>
+    <AssemblyName>Quartz.ChildProcess</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>

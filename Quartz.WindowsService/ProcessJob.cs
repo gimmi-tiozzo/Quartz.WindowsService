@@ -1,6 +1,5 @@
 ﻿using Quartz.Common;
 using Quartz.WindowsService.Model;
-using System.Diagnostics;
 using System.IO;
 
 namespace Quartz.WindowsService
@@ -30,23 +29,8 @@ namespace Quartz.WindowsService
                 return;
             }
 
-            //avvia il processo in modalità senza shell
-            ProcessStartInfo headelessProcess = new ProcessStartInfo()
-            {
-                FileName = scheduleConfiguration.ProcessPath,
-                Arguments = scheduleConfiguration.ProcessParameters,
-                RedirectStandardError = true,
-                RedirectStandardOutput = true,
-                RedirectStandardInput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                ErrorDialog = false,
-                WindowStyle = ProcessWindowStyle.Hidden
-            };
-
-            Logger.Information($"Lancio {headelessProcess.FileName} {headelessProcess.Arguments}");
-
-            Process.Start(headelessProcess);
+            Logger.Information($"Lancio {scheduleConfiguration.ProcessPath} {scheduleConfiguration.ProcessParameters}");
+            Utilities.HeadelessProcessStart(scheduleConfiguration.ProcessPath, scheduleConfiguration.ProcessParameters);
         }
     }
 }

@@ -52,9 +52,12 @@ function buildSolution
 		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\log4net.dll -Destination $releaseDir
 		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Quartz.dll -Destination $releaseDir
 		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Quartz.RootProcess.exe -Destination $releaseDir
+		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Quartz.ChildProcess.exe -Destination $releaseDir
 		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Quartz.WindowsService.exe -Destination $releaseDir
 		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Quartz.Common.dll -Destination $releaseDir
 		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Quartz.WindowsService.exe.config -Destination $releaseDir
+		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Quartz.RootProcess.exe.config -Destination $releaseDir
+		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Quartz.ChildProcess.exe.config -Destination $releaseDir
 		Copy-Item -Path ..\Tools\service-util.ps1 -Destination $releaseDir
 	}
 }

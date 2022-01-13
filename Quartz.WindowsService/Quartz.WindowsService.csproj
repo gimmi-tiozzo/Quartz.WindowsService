@@ -79,6 +79,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Quartz.ChildProcess\Quartz.ChildProcess.csproj">
+      <Project>{e3974272-e8e8-49df-8e29-86c63b5adce6}</Project>
+      <Name>Quartz.ChildProcess</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Quartz.Common\Quartz.Common.csproj">
       <Project>{ff2331b8-60f6-46af-8ae6-aff41ae4a352}</Project>
       <Name>Quartz.Common</Name>
