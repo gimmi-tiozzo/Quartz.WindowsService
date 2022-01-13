@@ -20,11 +20,22 @@ namespace Quartz.RootProcess
         /// <param name="args">Argomenti da linea di comando</param>
         static void Main(string[] args)
         {
-            string argument = args.Length == 1 ? args[0] : "Argomento Assente!!";
-            Logger.Information($"Questo è un messaggio di test. UserInteractive: {Environment.UserInteractive} - Argomento: {argument} - User: {WindowsIdentity.GetCurrent().Name}");
+            try
+            {
+                string argument = args.Length == 1 ? args[0] : "Argomento Assente!!";
+                Logger.Information($"Questo è un messaggio di test. UserInteractive: {Environment.UserInteractive} - Argomento: {argument} - User: {WindowsIdentity.GetCurrent().Name}");
 
-            //lancio processo figlio in modalità headeless
-            Utilities.HeadelessProcessStart("Quartz.ChildProcess.exe", "child_param");
+                //esegui ping al database in autenticazione integrata
+                Utilities.PingDatabase();
+                Logger.Information("Aperta e chiusa connessione al database da processo Root");
+
+                //lancio processo figlio in modalità headeless
+                Utilities.HeadelessProcessStart("Quartz.ChildProcess.exe", "child_param");
+            }
+            catch (Exception err)
+            {
+                Logger.Error("Errore processo Root", err);
+            }
         }
     }
 }

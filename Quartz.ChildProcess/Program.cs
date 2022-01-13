@@ -17,8 +17,19 @@ namespace Quartz.ChildProcess
         /// <param name="args">Argomenti da linea di comando</param>
         static void Main(string[] args)
         {
-            string argument = args.Length == 1 ? args[0] : "Argomento Assente!!";
-            Logger.Information($"Questo è un messaggio di test. UserInteractive: {Environment.UserInteractive} - Argomento: {argument} - User: {WindowsIdentity.GetCurrent().Name}");
+            try
+            {
+                string argument = args.Length == 1 ? args[0] : "Argomento Assente!!";
+                Logger.Information($"Questo è un messaggio di test. UserInteractive: {Environment.UserInteractive} - Argomento: {argument} - User: {WindowsIdentity.GetCurrent().Name}");
+
+                //esegui ping al database in autenticazione integrata
+                Utilities.PingDatabase();
+                Logger.Information("Aperta e chiusa connessione al database da processo Child");
+            }
+            catch (Exception err)
+            {
+                Logger.Error("Errore processo Root", err);
+            }
         }
     }
 }

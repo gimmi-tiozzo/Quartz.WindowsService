@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System.Configuration;
+using System.Data.SqlClient;
+using System.Diagnostics;
 
 namespace Quartz.Common
 {
@@ -29,6 +31,14 @@ namespace Quartz.Common
             };
 
             Process.Start(headelessProcess);
+        }
+
+        public static void PingDatabase()
+        {
+            using (SqlConnection cnn = new SqlConnection(ConfigurationManager.ConnectionStrings["QuartzDatabase"].ConnectionString))
+            {
+                cnn.Open();
+            }
         }
     }
 }
