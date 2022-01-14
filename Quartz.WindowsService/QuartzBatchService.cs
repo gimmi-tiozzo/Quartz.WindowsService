@@ -4,6 +4,9 @@ using Quartz.WindowsService.Database;
 using Quartz.WindowsService.Model;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
+using System.Runtime.Caching;
 using System.ServiceProcess;
 using System.Threading;
 
@@ -18,6 +21,16 @@ namespace Quartz.WindowsService
         /// Scheduler
         /// </summary>
         protected IScheduler Scheduler { get; set; }
+
+        /// <summary>
+        /// Cache dei piani di schedulazione
+        /// </summary>
+        protected ObjectCache SchedulePlanCache { get; set; }
+
+        /// <summary>
+        /// Oggetto usato come mutex per la sincronizzazione tra thread diversi
+        /// </summary>
+        private readonly object Mutex = new object();
 
         /// <summary>
         /// Logger
@@ -56,7 +69,7 @@ namespace Quartz.WindowsService
                 try
                 {
                     BatchScheduleRepository repository = new BatchScheduleRepository();
-                    return repository.GetScheduleConfiguration("QUARTZ_TEST", Environment.MachineName);
+                    return repository.GetScheduleConfiguration(ConfigurationManager.AppSettings.Get("QuartzJobName"), Environment.MachineName);
                 }
                 catch (Exception err)
                 {
@@ -64,7 +77,7 @@ namespace Quartz.WindowsService
                 }
 
                 //pausa ogni 15 secondi di retry
-                Thread.Sleep(15000);
+                Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings.Get("DbAccessRetrySleep")));
             }
         }
 
@@ -81,17 +94,88 @@ namespace Quartz.WindowsService
                 Logger.Information($"Creazione Job e Trigger con configurazione: {schedule}");
 
                 //definisci il Job (azione da eseguire)
-                IJobDetail job = JobBuilder.Create<ProcessJob>().WithIdentity($"{schedule.IdRule}_JOB", $"{schedule.BatchName}_JOB").Build();
-                job.JobDataMap.Put("data", schedule);
+                var jobKey = Utilities.GetJobKey(schedule.IdRule, schedule.BatchName);
+                IJobDetail job = JobBuilder.Create<ProcessJob>().WithIdentity(jobKey.Item1, jobKey.Item2).Build();
+                job.JobDataMap.Put(ProcessJob.JobDataMapName, schedule);
 
                 //definisci il trigger (calendario) di tipo Cron (https://www.freeformatter.com/cron-expression-generator-quartz.html). es 0/5 * 8-17 * * ?
-                ITrigger trigger = TriggerBuilder.Create().WithIdentity($"{schedule.IdRule}_TRIGGER", $"{schedule.BatchName}_TRIGGER").WithCronSchedule(schedule.CronExpression).Build();
+                var tupleKey = Utilities.GetTriggerKey(schedule.IdRule, schedule.BatchName);
+                ITrigger trigger = TriggerBuilder.Create().WithIdentity(tupleKey.Item1, tupleKey.Item2).WithCronSchedule(schedule.CronExpression).Build();
 
                 jobsAndTriggers.Add(job, new Quartz.Collection.HashSet<ITrigger>() { trigger });
             }
 
             //configura lo schedulatore
             Scheduler.ScheduleJobs(jobsAndTriggers, true);
+        }
+
+        /// <summary>
+        /// Richedula i piani di esecuzione dello scheduler Quartz
+        /// </summary>
+        /// <param name="schedules">Piani di esecuzione Cron</param>
+        private void Reschedule(List<BatchScheduleConfiguration> schedules)
+        {
+            foreach (BatchScheduleConfiguration schedule in schedules)
+            {
+                var tupleKey = Utilities.GetTriggerKey(schedule.IdRule, schedule.BatchName);
+                TriggerKey triggerKey = new TriggerKey(tupleKey.Item1, tupleKey.Item2);
+
+                ITrigger oldTrigger = Scheduler.GetTrigger(triggerKey);
+                TriggerBuilder oldTriggerBuilder = oldTrigger.GetTriggerBuilder();
+                ITrigger newTrigger = oldTriggerBuilder.WithCronSchedule(schedule.CronExpression).Build();
+
+                Scheduler.RescheduleJob(triggerKey, newTrigger);
+            }
+        }
+
+        /// <summary>
+        /// Configura la cache di esecuzione dei piani dello scheduler
+        /// </summary>
+        /// <param name="schedules">Piani di esecuzione cron</param>
+        private void SetupSchedulePlanCache(List<BatchScheduleConfiguration> schedules)
+        {
+            if (SchedulePlanCache == null)
+            {
+                SchedulePlanCache = MemoryCache.Default;
+            }
+
+            CacheItemPolicy policy = new CacheItemPolicy()
+            {
+                AbsoluteExpiration = DateTimeOffset.Now.AddMilliseconds(Convert.ToInt32(ConfigurationManager.AppSettings.Get("CacheItemPolicyAbsoluteExpiration"))),
+                RemovedCallback = new CacheEntryRemovedCallback(CacheRemovedCallback)
+            };
+
+            schedules.ForEach(s => SchedulePlanCache.Set(s.IdRule, s, policy));
+        }
+
+        /// <summary>
+        /// Callback invocata alla scadenza dei piani di esecuzione in cache
+        /// </summary>
+        /// <param name="arguments">Argomento callback</param>
+        private void CacheRemovedCallback(CacheEntryRemovedArguments arguments)
+        {
+            lock (Mutex)
+            {
+                if (!Scheduler.IsShutdown)
+                {
+                    Logger.Information("Piani di esecuzione in cache scaduti");
+
+                    try
+                    {
+                        List<BatchScheduleConfiguration> schedules = GetScheduleConfiguration();
+                        
+                        SetupSchedulePlanCache(schedules);
+                        Logger.Information("Ricaricarti nuovi piani di esecuzione in cache");
+
+                        Reschedule(schedules);
+                        Logger.Information("Richedulati Job quartz con nuovi piani di esecuzione Cron");
+                    }
+                    catch (Exception err)
+                    {
+                        Logger.Error("Piani di esecuzion in cache scaduti error", err);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -119,21 +203,27 @@ namespace Quartz.WindowsService
         /// <param name="args">Argomenti passati da console servizi</param>
         protected override void OnStart(string[] args)
         {
-            try
+            lock (Mutex)
             {
-                Logger.Information("Esecuzione OnStart");
+                try
+                {
+                    Logger.Information("Esecuzione OnStart");
 
-                List<BatchScheduleConfiguration> schedules = GetScheduleConfiguration();
+                    List<BatchScheduleConfiguration> schedules = GetScheduleConfiguration();
 
-                InitializeScheduler();
-                SetupScheduler(schedules);
+                    InitializeScheduler();
+                    SetupScheduler(schedules);
+                    SetupSchedulePlanCache(schedules);
 
-                Scheduler.Start();
+                    Scheduler.Start();
+                }
+                catch (Exception err)
+                {
+                    Logger.Error("OnStart error", err);
+                }
+
             }
-            catch (Exception err)
-            {
-                Logger.Error("OnStart error", err);
-            }
+            
         }
 
         /// <summary>
@@ -141,15 +231,21 @@ namespace Quartz.WindowsService
         /// </summary>
         protected override void OnStop()
         {
-            try
+            lock (Mutex)
             {
-                Logger.Information("Esecuzione OnStop");
-                Scheduler.Shutdown();
+                try
+                {
+                    Logger.Information("Esecuzione OnStop");
+                    Scheduler.Shutdown();
+
+                    SchedulePlanCache.ToList().ForEach(item => SchedulePlanCache.Remove(item.Key));
+                }
+                catch (Exception err)
+                {
+                    Logger.Error("OnStop error", err);
+                }
             }
-            catch (Exception err)
-            {
-                Logger.Error("OnStop error", err);
-            }
+            
         }
 
         /// <summary>
@@ -157,14 +253,17 @@ namespace Quartz.WindowsService
         /// </summary>
         protected override void OnPause()
         {
-            try
+            lock (Mutex)
             {
-                Logger.Information("Esecuzione OnPause");
-                Scheduler.PauseAll();
-            }
-            catch (Exception err)
-            {
-                Logger.Error("OnPause error", err);
+                try
+                {
+                    Logger.Information("Esecuzione OnPause");
+                    Scheduler.PauseAll();
+                }
+                catch (Exception err)
+                {
+                    Logger.Error("OnPause error", err);
+                }
             }
         }
 
@@ -173,14 +272,17 @@ namespace Quartz.WindowsService
         /// </summary>
         protected override void OnContinue()
         {
-            try
+            lock (Mutex)
             {
-                Logger.Information("Esecuzione OnContinue");
-                Scheduler.ResumeAll();
-            }
-            catch (Exception err)
-            {
-                Logger.Error("OnContinue error", err);
+                try
+                {
+                    Logger.Information("Esecuzione OnContinue");
+                    Scheduler.ResumeAll();
+                }
+                catch (Exception err)
+                {
+                    Logger.Error("OnContinue error", err);
+                }
             }
         }
     }

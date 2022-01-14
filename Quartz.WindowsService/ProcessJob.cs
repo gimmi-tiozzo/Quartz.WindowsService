@@ -15,13 +15,18 @@ namespace Quartz.WindowsService
         private readonly BatchLogger Logger = BatchLogger.GetLogger();
 
         /// <summary>
+        /// Nome dataMap passato al Job
+        /// </summary>
+        public const string JobDataMapName = "data";
+
+        /// <summary>
         /// Esecuzione del Job
         /// </summary>
         /// <param name="context">Contesto di esecuzione</param>
         public void Execute(IJobExecutionContext context)
         {
             var dataMap = context.MergedJobDataMap;
-            var scheduleConfiguration = (BatchScheduleConfiguration)dataMap["data"];
+            var scheduleConfiguration = (BatchScheduleConfiguration)dataMap[JobDataMapName];
 
             if (!File.Exists(scheduleConfiguration.ProcessPath))
             {
