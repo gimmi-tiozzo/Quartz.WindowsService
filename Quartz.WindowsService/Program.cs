@@ -1,5 +1,6 @@
 ﻿using Quartz.Common;
 using System;
+using System.IO;
 using System.ServiceProcess;
 
 namespace Quartz.WindowsService
@@ -19,7 +20,6 @@ namespace Quartz.WindowsService
         /// </summary>
         static void Main()
         {
-
             if (Environment.UserInteractive)
             {
                 try
@@ -35,6 +35,11 @@ namespace Quartz.WindowsService
             else
             {
                 Logger.Information("Avvio in modalità Windows Service (Headless)");
+
+                //imposta la directory corrente a quella dell'eseguibile altrimenti per un windows service sarebbe C:\WINDOWS\system32
+                Logger.Information($"Current Working Directory prima di set forzato: {Directory.GetCurrentDirectory()}");
+                Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+                Logger.Information($"Current Working Directory dopo set forzato: {Directory.GetCurrentDirectory()}");
 
                 ServiceBase[] servicesToRun = new ServiceBase[] { new QuartzBatchService() };
                 ServiceBase.Run(servicesToRun);
