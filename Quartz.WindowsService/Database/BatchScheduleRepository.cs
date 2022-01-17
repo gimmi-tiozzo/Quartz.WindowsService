@@ -37,7 +37,8 @@ namespace Quartz.WindowsService.Database
                             CronExpression = IsDBNullValueForString(reader["ESPRESSIONE_CRON"]),
                             BatchName = IsDBNullValueForString(reader["NOME_BATCH"]),
                             ServerName = IsDBNullValueForString(reader["NOME_SERVER"]),
-                            ProcessPath = IsDBNullValueForString(reader["PATH_PROCESSO"]),
+                            RootProcessPath = IsDBNullValueForString(reader["PATH_PROCESSO_ROOT"]),
+                            ProcessListToKill = IsDBNullValueForString(reader["LISTA_PROCESSI"]).Split(new char[] { '|' }),
                             ProcessParameters = IsDBNullValueForString(reader["PARAMETRI_PROCESSO"])
                         });
                     }

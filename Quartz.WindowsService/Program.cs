@@ -25,7 +25,8 @@ namespace Quartz.WindowsService
                 try
                 {
                     Logger.Information("Avvio in modalità UserInteractive");
-                    new QuartzBatchService().OnDebug();
+                    QuartzBatchService service = new QuartzBatchService();
+                    service.OnDebug(isStart: true);
                 }
                 catch (Exception err)
                 {

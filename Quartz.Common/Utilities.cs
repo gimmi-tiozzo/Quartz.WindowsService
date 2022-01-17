@@ -63,5 +63,20 @@ namespace Quartz.Common
         {
             return new Tuple<string, string>($"{idRule}_JOB", $"{batchName}_JOB");
         }
+
+        /// <summary>
+        /// Esegui il kill di un processo in base al suo nome
+        /// </summary>
+        /// <param name="processNames">Nome processi</param>
+        public static void KillProcessesByName(string[] processNames)
+        {
+            foreach (string procName in processNames)
+            {
+                foreach (var process in Process.GetProcessesByName(procName))
+                {
+                    process.Kill();
+                }
+            }
+        }
     }
 }

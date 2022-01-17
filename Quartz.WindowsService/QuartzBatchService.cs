@@ -206,10 +206,19 @@ namespace Quartz.WindowsService
         /// <summary>
         /// Metodo di start solo a fini di debug
         /// </summary>
-        public void OnDebug()
+        /// <param name="isStart">True si esegue start, false si esegue stop</param>
+        public void OnDebug(bool isStart)
         {
             Logger.Information("Esecuzione OnDebug");
-            OnStart(null);
+
+            if (isStart)
+            {
+                OnStart(null);
+            }
+            else
+            {
+                OnStop();
+            }
         }
 
         /// <summary>
@@ -261,7 +270,19 @@ namespace Quartz.WindowsService
 
                     if (Scheduler != null)
                     {
+                        //spengo lo schedulatore
                         Scheduler.Shutdown();
+
+                        //eseguo kill dei processi
+                        foreach (var item in SchedulePlanCache)
+                        {
+                            BatchScheduleConfiguration scheduleConfiguration = (BatchScheduleConfiguration)item.Value;
+
+                            Logger.Information($"Provo ad eseguire il kill dei processi: {String.Join(", ", scheduleConfiguration.ProcessListToKill)}");
+                            Utilities.KillProcessesByName(scheduleConfiguration.ProcessListToKill);
+                        }
+
+                        //pulisco la cache
                         SchedulePlanCache.ToList().ForEach(item => SchedulePlanCache.Remove(item.Key));
                     }
                 }

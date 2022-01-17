@@ -28,14 +28,14 @@ namespace Quartz.WindowsService
             var dataMap = context.MergedJobDataMap;
             var scheduleConfiguration = (BatchScheduleConfiguration)dataMap[JobDataMapName];
 
-            if (!File.Exists(scheduleConfiguration.ProcessPath))
+            if (!File.Exists(scheduleConfiguration.RootProcessPath))
             {
-                Logger.Error($"Non ho trovato nella cartella di del servizio Quartz l'eseguibile per {scheduleConfiguration.ProcessPath}", null);
+                Logger.Error($"Non ho trovato nella cartella di del servizio Quartz l'eseguibile per {scheduleConfiguration.RootProcessPath}", null);
                 return;
             }
 
-            Logger.Information($"Lancio {scheduleConfiguration.ProcessPath} {scheduleConfiguration.ProcessParameters}");
-            Utilities.HeadelessProcessStart(scheduleConfiguration.ProcessPath, scheduleConfiguration.ProcessParameters);
+            Logger.Information($"Lancio {scheduleConfiguration.RootProcessPath} {scheduleConfiguration.ProcessParameters}");
+            Utilities.HeadelessProcessStart(scheduleConfiguration.RootProcessPath, scheduleConfiguration.ProcessParameters);
         }
     }
 }

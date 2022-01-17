@@ -1,4 +1,6 @@
-﻿namespace Quartz.WindowsService.Model
+﻿using System;
+
+namespace Quartz.WindowsService.Model
 {
     /// <summary>
     /// Entity che rappresenta una configurazione di schedulazione
@@ -26,9 +28,14 @@
         public string ServerName { get; set; }
 
         /// <summary>
-        /// Path processo
+        /// Path processo root
         /// </summary>
-        public string ProcessPath { get; set; }
+        public string RootProcessPath { get; set; }
+
+        /// <summary>
+        /// Lista processi da killare al stop del servizio
+        /// </summary>
+        public string[] ProcessListToKill { get; set; }
 
         /// <summary>
         /// Parametri Processo
@@ -41,7 +48,7 @@
         /// <returns>Rappresentazione oggetto in formato stringa</returns>
         public override string ToString()
         {
-            return $"IdRule: {IdRule}, CronExpression: {CronExpression}, BatchName: {BatchName}, ServerName: {ServerName}, ProcessPath: {ProcessPath}, ProcessParameters: {ProcessParameters}";
+            return $"IdRule: {IdRule}, CronExpression: {CronExpression}, BatchName: {BatchName}, ServerName: {ServerName}, RootProcessPath: {RootProcessPath}, ProcessParameters: {ProcessParameters}, ProcessListToKill: {String.Join(";", ProcessListToKill)}";
         }
     }
 }
