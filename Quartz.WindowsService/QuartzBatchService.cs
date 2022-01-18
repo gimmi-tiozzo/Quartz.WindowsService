@@ -208,6 +208,37 @@ namespace Quartz.WindowsService
         }
 
         /// <summary>
+        /// Avvia il servizio
+        /// </summary>
+        private void StartService()
+        {
+            try
+            {
+                Logger.Information(QuartzResources.OnStartInfo);
+
+                List<BatchScheduleConfiguration> schedules = GetScheduleConfiguration(false);
+
+                if (schedules.Count > 0)
+                {
+                    //inizializza schedule e cache (piani di esecuzione)
+                    InitializeScheduler();
+                    SetupScheduler(schedules);
+                    SetupSchedulePlanCache(schedules);
+
+                    Scheduler.Start();
+                }
+                else
+                {
+                    Logger.Error(String.Format(QuartzResources.PlainLoadNotFoundError, ConfigurationManager.AppSettings.Get(ConfigurationKeys.QuartzJobName), Environment.MachineName), null);
+                }
+            }
+            catch (Exception err)
+            {
+                Logger.Error(QuartzResources.OnStartError, err);
+            }
+        }
+
+        /// <summary>
         /// Evento eccezioni non gestite
         /// </summary>
         /// <param name="sender">Origine evento</param>
@@ -243,33 +274,18 @@ namespace Quartz.WindowsService
         {
             lock (Mutex)
             {
-                try
+                //l'avvio dello scheduler è lanciato in un thread esterno in background nel caso di servizio per non bloccare OnStart della console dei servizi windows
+                Thread trd = new Thread(new ThreadStart(() =>
                 {
-                    Logger.Information(QuartzResources.OnStartInfo);
-
-                    List<BatchScheduleConfiguration> schedules = GetScheduleConfiguration(false);
-
-                    if (schedules.Count > 0)
-                    {
-                        //inizializza schedule e cache (piani di esecuzione)
-                        InitializeScheduler();
-                        SetupScheduler(schedules);
-                        SetupSchedulePlanCache(schedules);
-
-                        Scheduler.Start();
-                    }
-                    else
-                    {
-                        Logger.Error(String.Format(QuartzResources.PlainLoadNotFoundError, ConfigurationManager.AppSettings.Get(ConfigurationKeys.QuartzJobName), Environment.MachineName), null);
-                    }
-                }
-                catch (Exception err)
+                    StartService();
+                }))
                 {
-                    Logger.Error(QuartzResources.OnStartError, err);
-                }
+                    //se non sono in modalità user interactive (servizio windows) allora il thread è lanciato in background, altrimenti in foreground
+                    IsBackground = !Environment.UserInteractive
+                };
 
-            }
-            
+                trd.Start();
+            } 
         }
 
         /// <summary>
