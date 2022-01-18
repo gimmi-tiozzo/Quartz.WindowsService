@@ -20,30 +20,37 @@ namespace Quartz.WindowsService
         /// </summary>
         static void Main()
         {
-            if (Environment.UserInteractive)
+            try
             {
-                try
+                if (Environment.UserInteractive)
                 {
-                    Logger.Information("Avvio in modalità UserInteractive");
-                    QuartzBatchService service = new QuartzBatchService();
-                    service.OnDebug(isStart: true);
+                    try
+                    {
+                        Logger.Information(QuartzResources.UserInteractiveInfo);
+                        QuartzBatchService service = new QuartzBatchService();
+                        service.OnDebug(isStart: true);
+                    }
+                    catch (Exception err)
+                    {
+                        Logger.Error(QuartzResources.OnMainDebugError, err);
+                    }
                 }
-                catch (Exception err)
+                else
                 {
-                    Logger.Error("Errore Batch Service in modalità interattiva (OnDebug)", err);
+                    Logger.Information(QuartzResources.HeadlessInfo);
+
+                    //imposta la directory corrente a quella dell'eseguibile altrimenti per un windows service sarebbe C:\WINDOWS\system32
+                    Logger.Information(String.Format(QuartzResources.PreCurrentDirectoryInfo, Directory.GetCurrentDirectory()));
+                    Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+                    Logger.Information(String.Format(QuartzResources.PostCurrentDirectoryInfo, Directory.GetCurrentDirectory()));
+
+                    ServiceBase[] servicesToRun = new ServiceBase[] { new QuartzBatchService() };
+                    ServiceBase.Run(servicesToRun);
                 }
             }
-            else
+            catch (Exception err)
             {
-                Logger.Information("Avvio in modalità Windows Service (Headless)");
-
-                //imposta la directory corrente a quella dell'eseguibile altrimenti per un windows service sarebbe C:\WINDOWS\system32
-                Logger.Information($"Current Working Directory prima di set forzato: {Directory.GetCurrentDirectory()}");
-                Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
-                Logger.Information($"Current Working Directory dopo set forzato: {Directory.GetCurrentDirectory()}");
-
-                ServiceBase[] servicesToRun = new ServiceBase[] { new QuartzBatchService() };
-                ServiceBase.Run(servicesToRun);
+                Logger.Error(QuartzResources.GenericError, err);
             }
         }
     }

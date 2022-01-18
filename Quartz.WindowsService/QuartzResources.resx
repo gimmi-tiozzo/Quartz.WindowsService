@@ -1,0 +1,192 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="DbError" xml:space="preserve">
+    <value>Errore recupero configurazioni da database</value>
+  </data>
+  <data name="GenericError" xml:space="preserve">
+    <value>Errore non gestito</value>
+  </data>
+  <data name="HeadlessInfo" xml:space="preserve">
+    <value>Avvio in modalità Windows Service (Headless)</value>
+  </data>
+  <data name="NewSchedulerInfo" xml:space="preserve">
+    <value>Creazione Job e Trigger con configurazione: {0}</value>
+  </data>
+  <data name="OnContinueError" xml:space="preserve">
+    <value>OnContinue error</value>
+  </data>
+  <data name="OnContinueInfo" xml:space="preserve">
+    <value>Esecuzione OnContinue</value>
+  </data>
+  <data name="OnDebugInfo" xml:space="preserve">
+    <value>Esecuzione OnDebug</value>
+  </data>
+  <data name="OnMainDebugError" xml:space="preserve">
+    <value>Errore Batch Service in modalità interattiva (OnDebug)</value>
+  </data>
+  <data name="OnPauseError" xml:space="preserve">
+    <value>OnPause error</value>
+  </data>
+  <data name="OnPauseInfo" xml:space="preserve">
+    <value>Esecuzione OnPause</value>
+  </data>
+  <data name="OnStartError" xml:space="preserve">
+    <value>OnStart error</value>
+  </data>
+  <data name="OnStartInfo" xml:space="preserve">
+    <value>Esecuzione OnStart</value>
+  </data>
+  <data name="OnStopError" xml:space="preserve">
+    <value>OnStop error</value>
+  </data>
+  <data name="OnStopInfo" xml:space="preserve">
+    <value>Esecuzione OnStop</value>
+  </data>
+  <data name="OnStopProcessesKill" xml:space="preserve">
+    <value>Provo ad eseguire il kill dei processi: {0}</value>
+  </data>
+  <data name="PlainExpiredInfo" xml:space="preserve">
+    <value>Piani di esecuzione in cache scaduti</value>
+  </data>
+  <data name="PlainLoadNotFoundError" xml:space="preserve">
+    <value>Non ho trovato piani di esecuzione a database per il batch {0} e server {1}. Non attivo lo scheduler quartz e la cache dei piani di esecuzione</value>
+  </data>
+  <data name="PlainReloadError" xml:space="preserve">
+    <value>Piani di esecuzion in cache scaduti error. Si mantengono quelli attuali</value>
+  </data>
+  <data name="PlainReloadInfo" xml:space="preserve">
+    <value>Ricaricarti nuovi piani di esecuzione in cache</value>
+  </data>
+  <data name="PlainReloadNotFoundError" xml:space="preserve">
+    <value>Non ho trovato piani di esecuzione a database per il batch {0} e server {1}. Si mantengono quelli attuali</value>
+  </data>
+  <data name="PostCurrentDirectoryInfo" xml:space="preserve">
+    <value>Current Working Directory dopo set forzato: {0}</value>
+  </data>
+  <data name="PreCurrentDirectoryInfo" xml:space="preserve">
+    <value>Current Working Directory prima di set forzato: {0}</value>
+  </data>
+  <data name="RescheduleJobInfo" xml:space="preserve">
+    <value>Richedulati Job quartz con nuovi piani di esecuzione Cron</value>
+  </data>
+  <data name="UserInteractiveInfo" xml:space="preserve">
+    <value>Avvio in modalità UserInteractive</value>
+  </data>
+</root>

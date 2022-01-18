@@ -70,13 +70,13 @@ namespace Quartz.WindowsService
                 try
                 {
                     BatchScheduleRepository repository = new BatchScheduleRepository();
-                    return repository.GetScheduleConfiguration(ConfigurationManager.AppSettings.Get("QuartzJobName"), Environment.MachineName);
+                    return repository.GetScheduleConfiguration(ConfigurationManager.AppSettings.Get(ConfigurationKeys.QuartzJobName), Environment.MachineName);
                 }
                 catch (Exception err)
                 {
                     if (!oneShot)
                     {
-                        Logger.Error("Errore recupero configurazioni da database", err);
+                        Logger.Error(QuartzResources.DbError, err);
                     }
                     else
                     {
@@ -85,7 +85,7 @@ namespace Quartz.WindowsService
                 }
 
                 //pausa ogni 15 secondi di retry
-                Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings.Get("DbAccessRetrySleep")));
+                Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings.Get(ConfigurationKeys.DbAccessRetrySleep)));
             }
         }
 
@@ -99,7 +99,7 @@ namespace Quartz.WindowsService
 
             foreach (BatchScheduleConfiguration schedule in schedules)
             {
-                Logger.Information($"Creazione Job e Trigger con configurazione: {schedule}");
+                Logger.Information(String.Format(QuartzResources.NewSchedulerInfo, schedule));
 
                 //definisci il Job (azione da eseguire)
                 var jobKey = Utilities.GetJobKey(schedule.IdRule, schedule.BatchName);
@@ -125,13 +125,16 @@ namespace Quartz.WindowsService
         {
             foreach (BatchScheduleConfiguration schedule in schedules)
             {
+                //calcola la chiave del trigger associata al processo
                 var tupleKey = Utilities.GetTriggerKey(schedule.IdRule, schedule.BatchName);
                 TriggerKey triggerKey = new TriggerKey(tupleKey.Item1, tupleKey.Item2);
 
+                //crea un nuovo trigger a partire da quello vecchio (update)
                 ITrigger oldTrigger = Scheduler.GetTrigger(triggerKey);
                 TriggerBuilder oldTriggerBuilder = oldTrigger.GetTriggerBuilder();
                 ITrigger newTrigger = oldTriggerBuilder.WithCronSchedule(schedule.CronExpression).Build();
 
+                //update trigger => rischedulo Job
                 Scheduler.RescheduleJob(triggerKey, newTrigger);
             }
         }
@@ -147,11 +150,19 @@ namespace Quartz.WindowsService
                 SchedulePlanCache = MemoryCache.Default;
             }
 
-            CacheItemPolicy policy = new CacheItemPolicy()
+            //Policy di scandeza della configurazione scheduler caricata in cache
+            CacheItemPolicy policy = new CacheItemPolicy();
+
+            if (!Convert.ToBoolean(ConfigurationManager.AppSettings.Get(ConfigurationKeys.EnablePolicyAbsoluteExpiration))) 
             {
-                AbsoluteExpiration = DateTimeOffset.Now.AddMilliseconds(Convert.ToInt32(ConfigurationManager.AppSettings.Get("CacheItemPolicyAbsoluteExpiration"))),
-                RemovedCallback = new CacheEntryRemovedCallback(CacheRemovedCallback)
-            };
+                policy.Priority = CacheItemPriority.NotRemovable;
+                policy.AbsoluteExpiration = ObjectCache.InfiniteAbsoluteExpiration;
+            }
+            else
+            {
+                policy.AbsoluteExpiration = DateTimeOffset.Now.AddMilliseconds(Convert.ToInt32(ConfigurationManager.AppSettings.Get(ConfigurationKeys.CacheItemPolicyAbsoluteExpiration)));
+                policy.RemovedCallback = new CacheEntryRemovedCallback(CacheRemovedCallback);
+            }
 
             schedules.ForEach(s => SchedulePlanCache.Set(s.IdRule, s, policy));
         }
@@ -166,28 +177,31 @@ namespace Quartz.WindowsService
             {
                 if (!Scheduler.IsShutdown)
                 {
-                    Logger.Information("Piani di esecuzione in cache scaduti");
+                    Logger.Information(QuartzResources.PlainExpiredInfo);
 
                     try
                     {
+                        //recupero piani di esecuzione da database
                         List<BatchScheduleConfiguration> schedules = GetScheduleConfiguration(true);
                         
                         if (schedules.Count > 0)
                         {
+                            //ricarico piano di esecuzione in cache con nuova policy di scadenza
                             SetupSchedulePlanCache(schedules);
-                            Logger.Information("Ricaricarti nuovi piani di esecuzione in cache");
+                            Logger.Information(QuartzResources.PlainReloadInfo);
 
+                            //rischedulo il job con il nuovo piano di esecuzione recuparato da database
                             Reschedule(schedules);
-                            Logger.Information("Richedulati Job quartz con nuovi piani di esecuzione Cron");
+                            Logger.Information(QuartzResources.RescheduleJobInfo);
                         }
                         else
                         {
-                            Logger.Warning($"Non ho trovato piani di esecuzione a database per il batch {ConfigurationManager.AppSettings.Get("QuartzJobName")} e server {Environment.MachineName}. Si mantengono quelli attuali");
+                            Logger.Error(String.Format(QuartzResources.PlainReloadNotFoundError, ConfigurationManager.AppSettings.Get(ConfigurationKeys.QuartzJobName), Environment.MachineName), null);
                         }
                     }
                     catch (Exception err)
                     {
-                        Logger.Error("Piani di esecuzion in cache scaduti error. Si mantengono quelli attuali", err);
+                        Logger.Error(QuartzResources.PlainReloadError, err);
                     }
                 }
             }
@@ -200,7 +214,7 @@ namespace Quartz.WindowsService
         /// <param name="e">Parametri evento</param>
         private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            Logger.Error("Errore non gestito", (Exception)e.ExceptionObject);
+            Logger.Error(QuartzResources.GenericError, (Exception)e.ExceptionObject);
         }
 
         /// <summary>
@@ -209,7 +223,7 @@ namespace Quartz.WindowsService
         /// <param name="isStart">True si esegue start, false si esegue stop</param>
         public void OnDebug(bool isStart)
         {
-            Logger.Information("Esecuzione OnDebug");
+            Logger.Information(QuartzResources.OnDebugInfo);
 
             if (isStart)
             {
@@ -231,12 +245,13 @@ namespace Quartz.WindowsService
             {
                 try
                 {
-                    Logger.Information("Esecuzione OnStart");
+                    Logger.Information(QuartzResources.OnStartInfo);
 
                     List<BatchScheduleConfiguration> schedules = GetScheduleConfiguration(false);
 
                     if (schedules.Count > 0)
                     {
+                        //inizializza schedule e cache (piani di esecuzione)
                         InitializeScheduler();
                         SetupScheduler(schedules);
                         SetupSchedulePlanCache(schedules);
@@ -245,12 +260,12 @@ namespace Quartz.WindowsService
                     }
                     else
                     {
-                        Logger.Warning($"Non ho trovato piani di esecuzione a database per il batch {ConfigurationManager.AppSettings.Get("QuartzJobName")} e server {Environment.MachineName}. Non attivo lo scheduler quartz e la cache dei piani di esecuzione");
+                        Logger.Error(String.Format(QuartzResources.PlainLoadNotFoundError, ConfigurationManager.AppSettings.Get(ConfigurationKeys.QuartzJobName), Environment.MachineName), null);
                     }
                 }
                 catch (Exception err)
                 {
-                    Logger.Error("OnStart error", err);
+                    Logger.Error(QuartzResources.OnStartError, err);
                 }
 
             }
@@ -266,7 +281,7 @@ namespace Quartz.WindowsService
             {
                 try
                 {
-                    Logger.Information("Esecuzione OnStop");
+                    Logger.Information(QuartzResources.OnStopInfo);
 
                     if (Scheduler != null)
                     {
@@ -278,7 +293,7 @@ namespace Quartz.WindowsService
                         {
                             BatchScheduleConfiguration scheduleConfiguration = (BatchScheduleConfiguration)item.Value;
 
-                            Logger.Information($"Provo ad eseguire il kill dei processi: {String.Join(", ", scheduleConfiguration.ProcessListToKill)}");
+                            Logger.Information(String.Format(QuartzResources.OnStopProcessesKill, String.Join(", ", scheduleConfiguration.ProcessListToKill)));
                             Utilities.KillProcessesByName(scheduleConfiguration.ProcessListToKill);
                         }
 
@@ -288,7 +303,7 @@ namespace Quartz.WindowsService
                 }
                 catch (Exception err)
                 {
-                    Logger.Error("OnStop error", err);
+                    Logger.Error(QuartzResources.OnStopError, err);
                 }
             }
             
@@ -303,7 +318,7 @@ namespace Quartz.WindowsService
             {
                 try
                 {
-                    Logger.Information("Esecuzione OnPause");
+                    Logger.Information(QuartzResources.OnPauseInfo);
 
                     if (Scheduler != null)
                     {
@@ -312,7 +327,7 @@ namespace Quartz.WindowsService
                 }
                 catch (Exception err)
                 {
-                    Logger.Error("OnPause error", err);
+                    Logger.Error(QuartzResources.OnPauseError, err);
                 }
             }
         }
@@ -326,7 +341,7 @@ namespace Quartz.WindowsService
             {
                 try
                 {
-                    Logger.Information("Esecuzione OnContinue");
+                    Logger.Information(QuartzResources.OnContinueInfo);
 
                     if (Scheduler != null)
                     {
@@ -335,7 +350,7 @@ namespace Quartz.WindowsService
                 }
                 catch (Exception err)
                 {
-                    Logger.Error("OnContinue error", err);
+                    Logger.Error(QuartzResources.OnContinueError, err);
                 }
             }
         }
