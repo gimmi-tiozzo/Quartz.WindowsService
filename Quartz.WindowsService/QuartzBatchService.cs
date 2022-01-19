@@ -1,4 +1,5 @@
-﻿using Quartz.Common;
+﻿using Polly;
+using Quartz.Common;
 using Quartz.Impl;
 using Quartz.WindowsService.Database;
 using Quartz.WindowsService.Model;
@@ -65,28 +66,27 @@ namespace Quartz.WindowsService
         /// <returns>Configurazioni di schedulazione da database</returns>
         private List<BatchScheduleConfiguration> GetScheduleConfiguration(bool oneShot)
         {
-            while (true)
-            {
-                try
+            List<BatchScheduleConfiguration> schedules = new List<BatchScheduleConfiguration>();
+
+            Policy.HandleResult<bool>(executionResult => executionResult == false)
+                .WaitAndRetryForever(i => TimeSpan.FromMilliseconds(Convert.ToInt32(ConfigurationManager.AppSettings.Get(ConfigurationKeys.DbAccessRetrySleep))))
+                .Execute(() =>
                 {
-                    BatchScheduleRepository repository = new BatchScheduleRepository();
-                    return repository.GetScheduleConfiguration(ConfigurationManager.AppSettings.Get(ConfigurationKeys.QuartzJobName), Environment.MachineName);
-                }
-                catch (Exception err)
-                {
-                    if (!oneShot)
+                    try
+                    {
+                        BatchScheduleRepository repository = new BatchScheduleRepository();
+                        schedules = repository.GetScheduleConfiguration(ConfigurationManager.AppSettings.Get(ConfigurationKeys.QuartzJobName), Environment.MachineName);
+                        return true;
+                    }
+                    catch (Exception err)
                     {
                         Logger.Error(QuartzResources.DbError, err);
+                        return oneShot ? true : false;
                     }
-                    else
-                    {
-                        throw err;
-                    }
-                }
 
-                //pausa ogni 15 secondi di retry
-                Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings.Get(ConfigurationKeys.DbAccessRetrySleep)));
-            }
+                });
+
+            return schedules;
         }
 
         /// <summary>

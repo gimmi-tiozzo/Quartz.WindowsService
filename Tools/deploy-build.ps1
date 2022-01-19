@@ -51,6 +51,7 @@ function buildSolution
 		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Common.Logging.dll -Destination $releaseDir
 		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\log4net.dll -Destination $releaseDir
 		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Quartz.dll -Destination $releaseDir
+		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Polly.dll -Destination $releaseDir
 		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Quartz.RootProcess.exe -Destination $releaseDir
 		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Quartz.ChildProcess.exe -Destination $releaseDir
 		Copy-Item -Path ..\Quartz.WindowsService\bin\Release\Quartz.WindowsService.exe -Destination $releaseDir
