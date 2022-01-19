@@ -24,5 +24,10 @@
         /// Chiave configurazione per abilitare policy scadenza in ms dei piani di esecuzione in cache
         /// </summary>
         public const string EnablePolicyAbsoluteExpiration = "EnablePolicyAbsoluteExpiration";
+
+        /// <summary>
+        /// Chiave configurazione che identifica in modo univoco il piano di esecuzione
+        /// </summary>
+        public const string SchedulePlanKey = "{5EC7F17F-4367-448C-A8A9-56C0150C07F0}";
     }
 }

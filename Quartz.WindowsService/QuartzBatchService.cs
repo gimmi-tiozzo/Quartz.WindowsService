@@ -164,7 +164,7 @@ namespace Quartz.WindowsService
                 policy.RemovedCallback = new CacheEntryRemovedCallback(CacheRemovedCallback);
             }
 
-            schedules.ForEach(s => SchedulePlanCache.Set(s.IdRule, s, policy));
+            SchedulePlanCache.Set(ConfigurationKeys.SchedulePlanKey, schedules, policy);
         }
 
         /// <summary>
@@ -186,7 +186,7 @@ namespace Quartz.WindowsService
                         
                         if (schedules.Count > 0)
                         {
-                            //ricarico piano di esecuzione in cache con nuova policy di scadenza
+                            //ricarico nuovo piano di esecuzione in cache con nuova policy di scadenza
                             SetupSchedulePlanCache(schedules);
                             Logger.Information(QuartzResources.PlainReloadInfo);
 
@@ -196,12 +196,24 @@ namespace Quartz.WindowsService
                         }
                         else
                         {
+                            //ricarico vecchio piano di esecuzione
+                            SetupSchedulePlanCache((List<BatchScheduleConfiguration>)arguments.CacheItem.Value);
                             Logger.Error(String.Format(QuartzResources.PlainReloadNotFoundError, ConfigurationManager.AppSettings.Get(ConfigurationKeys.QuartzJobName), Environment.MachineName), null);
                         }
                     }
                     catch (Exception err)
                     {
                         Logger.Error(QuartzResources.PlainReloadError, err);
+
+                        try
+                        {
+                            //ricarico vecchio piano di esecuzione
+                            SetupSchedulePlanCache((List<BatchScheduleConfiguration>)arguments.CacheItem.Value);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error(QuartzResources.PlainReloadError, ex);
+                        }
                     }
                 }
             }
@@ -225,6 +237,7 @@ namespace Quartz.WindowsService
                     SetupScheduler(schedules);
                     SetupSchedulePlanCache(schedules);
 
+                    //avvia la schedulazione con tempificazine Cron
                     Scheduler.Start();
                 }
                 else
@@ -304,17 +317,24 @@ namespace Quartz.WindowsService
                         //spengo lo schedulatore
                         Scheduler.Shutdown();
 
-                        //eseguo kill dei processi
-                        foreach (var item in SchedulePlanCache)
-                        {
-                            BatchScheduleConfiguration scheduleConfiguration = (BatchScheduleConfiguration)item.Value;
-
-                            Logger.Information(String.Format(QuartzResources.OnStopProcessesKill, String.Join(", ", scheduleConfiguration.ProcessListToKill)));
-                            Utilities.KillProcessesByName(scheduleConfiguration.ProcessListToKill);
-                        }
+                        //ottengo l'eventuale piano di esecuzione
+                        List<BatchScheduleConfiguration> scheduleConfigurations = (List<BatchScheduleConfiguration>)SchedulePlanCache.Get(ConfigurationKeys.SchedulePlanKey);
 
                         //pulisco la cache
                         SchedulePlanCache.ToList().ForEach(item => SchedulePlanCache.Remove(item.Key));
+
+                        //killo eventuali processi in esecuzione
+                        if (scheduleConfigurations != null && scheduleConfigurations.Count > 0)
+                        {
+                            //ottengo la lista in distinct di tutti i processi da killare dai piani di esecuzione
+                            HashSet<string> processesToKill = new HashSet<string>();
+                            scheduleConfigurations.ForEach(s => s.ProcessListToKill.ToList().ForEach(p => processesToKill.Add(p)));
+                            string[] processesToKillArray = processesToKill.ToArray();
+
+                            //eseguo kill dei processi
+                            Logger.Information(String.Format(QuartzResources.OnStopProcessesKill, String.Join(", ", processesToKillArray)));
+                            Utilities.KillProcessesByName(processesToKillArray);
+                        }
                     }
                 }
                 catch (Exception err)
