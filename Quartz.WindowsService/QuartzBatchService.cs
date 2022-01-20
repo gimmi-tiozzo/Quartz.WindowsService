@@ -317,23 +317,27 @@ namespace Quartz.WindowsService
                         //spengo lo schedulatore
                         Scheduler.Shutdown();
 
-                        //ottengo l'eventuale piano di esecuzione
-                        List<BatchScheduleConfiguration> scheduleConfigurations = (List<BatchScheduleConfiguration>)SchedulePlanCache.Get(ConfigurationKeys.SchedulePlanKey);
-
-                        //pulisco la cache
-                        SchedulePlanCache.ToList().ForEach(item => SchedulePlanCache.Remove(item.Key));
-
-                        //killo eventuali processi in esecuzione
-                        if (scheduleConfigurations != null && scheduleConfigurations.Count > 0)
+                        //se è stata inizializzata una cache allora recupera eventuali processi da killare dai piani di esecuzione e pulisci la cache
+                        if (SchedulePlanCache != null)
                         {
-                            //ottengo la lista in distinct di tutti i processi da killare dai piani di esecuzione
-                            HashSet<string> processesToKill = new HashSet<string>();
-                            scheduleConfigurations.ForEach(s => s.ProcessListToKill.ToList().ForEach(p => processesToKill.Add(p)));
-                            string[] processesToKillArray = processesToKill.ToArray();
+                            //ottengo l'eventuale piano di esecuzione
+                            List<BatchScheduleConfiguration> scheduleConfigurations = (List<BatchScheduleConfiguration>)SchedulePlanCache.Get(ConfigurationKeys.SchedulePlanKey);
 
-                            //eseguo kill dei processi
-                            Logger.Information(String.Format(QuartzResources.OnStopProcessesKill, String.Join(", ", processesToKillArray)));
-                            Utilities.KillProcessesByName(processesToKillArray);
+                            //pulisco la cache
+                            SchedulePlanCache.ToList().ForEach(item => SchedulePlanCache.Remove(item.Key));
+
+                            //killo eventuali processi in esecuzione
+                            if (scheduleConfigurations != null && scheduleConfigurations.Count > 0)
+                            {
+                                //ottengo la lista in distinct di tutti i processi da killare dai piani di esecuzione
+                                HashSet<string> processesToKill = new HashSet<string>();
+                                scheduleConfigurations.ForEach(s => s.ProcessListToKill.ToList().ForEach(p => processesToKill.Add(p)));
+                                string[] processesToKillArray = processesToKill.ToArray();
+
+                                //eseguo kill dei processi
+                                Logger.Information(String.Format(QuartzResources.OnStopProcessesKill, String.Join(", ", processesToKillArray)));
+                                Utilities.KillProcessesByName(processesToKillArray);
+                            }
                         }
                     }
                 }
