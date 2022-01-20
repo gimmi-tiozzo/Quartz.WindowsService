@@ -1,6 +1,7 @@
 ﻿using Polly;
 using Quartz.Common;
 using Quartz.Impl;
+using Quartz.WindowsService.Core;
 using Quartz.WindowsService.Database;
 using Quartz.WindowsService.Model;
 using System;
@@ -102,13 +103,9 @@ namespace Quartz.WindowsService
                 Logger.Information(String.Format(QuartzResources.NewSchedulerInfo, schedule));
 
                 //definisci il Job (azione da eseguire)
-                var jobKey = Utilities.GetJobKey(schedule.IdRule, schedule.BatchName);
-                IJobDetail job = JobBuilder.Create<ProcessJob>().WithIdentity(jobKey.Item1, jobKey.Item2).Build();
-                job.JobDataMap.Put(ProcessJob.JobDataMapName, schedule);
-
+                IJobDetail job = QuartzCore.CreateNewJob(schedule);
                 //definisci il trigger (calendario) di tipo Cron (https://www.freeformatter.com/cron-expression-generator-quartz.html). es 0/5 * 8-17 * * ?
-                var tupleKey = Utilities.GetTriggerKey(schedule.IdRule, schedule.BatchName);
-                ITrigger trigger = TriggerBuilder.Create().WithIdentity(tupleKey.Item1, tupleKey.Item2).WithCronSchedule(schedule.CronExpression).Build();
+                ITrigger trigger = QuartzCore.CreateNewTrigger(schedule);
 
                 jobsAndTriggers.Add(job, new Quartz.Collection.HashSet<ITrigger>() { trigger });
             }
@@ -126,16 +123,28 @@ namespace Quartz.WindowsService
             foreach (BatchScheduleConfiguration schedule in schedules)
             {
                 //calcola la chiave del trigger associata al processo
-                var tupleKey = Utilities.GetTriggerKey(schedule.IdRule, schedule.BatchName);
+                var tupleKey = QuartzCore.GetTriggerKey(schedule.IdRule, schedule.BatchName);
                 TriggerKey triggerKey = new TriggerKey(tupleKey.Item1, tupleKey.Item2);
 
-                //crea un nuovo trigger a partire da quello vecchio (update)
+                //cerca il trigger per capire se eseguire un update (rischedulazione) o una schedulazione (nuovo Job)
                 ITrigger oldTrigger = Scheduler.GetTrigger(triggerKey);
-                TriggerBuilder oldTriggerBuilder = oldTrigger.GetTriggerBuilder();
-                ITrigger newTrigger = oldTriggerBuilder.WithCronSchedule(schedule.CronExpression).Build();
 
-                //update trigger => rischedulo Job
-                Scheduler.RescheduleJob(triggerKey, newTrigger);
+                if (oldTrigger != null)
+                {
+                    TriggerBuilder oldTriggerBuilder = oldTrigger.GetTriggerBuilder();
+                    ITrigger newTrigger = oldTriggerBuilder.WithCronSchedule(schedule.CronExpression).Build();
+
+                    //update trigger => rischedulo Job
+                    Scheduler.RescheduleJob(triggerKey, newTrigger);
+                }
+                else
+                {
+                    IJobDetail newJob = QuartzCore.CreateNewJob(schedule);
+                    ITrigger newTrigger = QuartzCore.CreateNewTrigger(schedule);
+
+                    //configura lo schedulatore
+                    Scheduler.ScheduleJob(newJob, newTrigger);
+                }
             }
         }
 

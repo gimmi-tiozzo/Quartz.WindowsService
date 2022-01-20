@@ -59,6 +59,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core\QuartzCore.cs" />
     <Compile Include="Database\BaseRepository.cs" />
     <Compile Include="Database\BatchScheduleRepository.cs" />
     <Compile Include="Model\BatchScheduleConfiguration.cs" />
