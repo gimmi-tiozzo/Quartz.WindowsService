@@ -188,7 +188,7 @@ namespace Quartz.WindowsService
             }
             else
             {
-                policy.AbsoluteExpiration = DateTimeOffset.Now.AddMilliseconds(Convert.ToInt32(ConfigurationManager.AppSettings.Get(ConfigurationKeys.CacheItemPolicyAbsoluteExpiration)));
+                policy.AbsoluteExpiration = DateTimeOffset.Now.AddSeconds(Convert.ToInt32(ConfigurationManager.AppSettings.Get(ConfigurationKeys.CacheItemPolicyAbsoluteExpiration)));
                 policy.RemovedCallback = new CacheEntryRemovedCallback(CacheRemovedCallback);
             }
 
