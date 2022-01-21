@@ -1,6 +1,7 @@
 ﻿using Polly;
 using Quartz.Common;
 using Quartz.Impl;
+using Quartz.Impl.Matchers;
 using Quartz.WindowsService.Core;
 using Quartz.WindowsService.Database;
 using Quartz.WindowsService.Model;
@@ -63,7 +64,7 @@ namespace Quartz.WindowsService
         /// <summary>
         /// Ottieni le configurazioni di schedulazione da database
         /// </summary>
-        /// <param name="oneShot">Indica se la configurazione delle schedulazioni deve essere recuperata con un solo accesso (oneShot) e un retry infinito</param>
+        /// <param name="oneShot">Indica se la configurazione delle schedulazioni deve essere recuperata con un solo accesso (oneShot) o un retry infinito</param>
         /// <returns>Configurazioni di schedulazione da database</returns>
         private List<BatchScheduleConfiguration> GetScheduleConfiguration(bool oneShot)
         {
@@ -82,7 +83,7 @@ namespace Quartz.WindowsService
                     catch (Exception err)
                     {
                         Logger.Error(QuartzResources.DbError, err);
-                        return oneShot ? true : false;
+                        return oneShot;
                     }
 
                 });
@@ -120,30 +121,48 @@ namespace Quartz.WindowsService
         /// <param name="schedules">Piani di esecuzione Cron</param>
         private void Reschedule(List<BatchScheduleConfiguration> schedules)
         {
+            //rischedula o nuova schedulazione job
             foreach (BatchScheduleConfiguration schedule in schedules)
             {
                 //calcola la chiave del trigger associata al processo
-                var tupleKey = QuartzCore.GetTriggerKey(schedule.IdRule, schedule.BatchName);
-                TriggerKey triggerKey = new TriggerKey(tupleKey.Item1, tupleKey.Item2);
+                TriggerKey triggerKey = QuartzCore.GetTriggerKey(schedule.IdRule, schedule.BatchName);
 
                 //cerca il trigger per capire se eseguire un update (rischedulazione) o una schedulazione (nuovo Job)
                 ITrigger oldTrigger = Scheduler.GetTrigger(triggerKey);
 
                 if (oldTrigger != null)
                 {
-                    TriggerBuilder oldTriggerBuilder = oldTrigger.GetTriggerBuilder();
-                    ITrigger newTrigger = oldTriggerBuilder.WithCronSchedule(schedule.CronExpression).Build();
+                    IJobDetail newJob = QuartzCore.CreateNewJob(schedule);
+                    ITrigger newTrigger = QuartzCore.CreateNewTrigger(schedule);
 
-                    //update trigger => rischedulo Job
-                    Scheduler.RescheduleJob(triggerKey, newTrigger);
+                    //update: delete & insert job + trigger
+                    JobKey updateKey = QuartzCore.GetJobKeyByTriggerKey(triggerKey);
+                    Scheduler.DeleteJob(updateKey);
+                    Scheduler.ScheduleJob(newJob, newTrigger);
+                    Logger.Information(String.Format(QuartzResources.UpdateJobInfo, updateKey.Name, updateKey.Group, schedule));
                 }
                 else
                 {
                     IJobDetail newJob = QuartzCore.CreateNewJob(schedule);
                     ITrigger newTrigger = QuartzCore.CreateNewTrigger(schedule);
 
-                    //configura lo schedulatore
+                    //New: insert Job (job & trigger)
                     Scheduler.ScheduleJob(newJob, newTrigger);
+                    Logger.Information(String.Format(QuartzResources.InsertJobInfo, newJob.Key.Name, newJob.Key.Group, schedule));
+                }
+            }
+
+            //eliminazione schedulazioni
+            var allTriggerKeys = Scheduler.GetTriggerKeys(GroupMatcher<TriggerKey>.AnyGroup());
+
+            foreach (TriggerKey triggerKey in allTriggerKeys)
+            {
+                if (!schedules.Any(s => QuartzCore.GetTriggerKey(s.IdRule, s.BatchName).Name == triggerKey.Name))
+                {
+                    //Cancel: delete Job (job)
+                    JobKey deleteKey = QuartzCore.GetJobKeyByTriggerKey(triggerKey);
+                    Scheduler.DeleteJob(deleteKey);
+                    Logger.Information(String.Format(QuartzResources.CancelJobInfo, deleteKey.Name, deleteKey.Group));
                 }
             }
         }

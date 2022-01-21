@@ -61,6 +61,15 @@ namespace Quartz.WindowsService {
         }
         
         /// <summary>
+        ///   Cerca una stringa localizzata simile a Eliminato Job id: {0} group: {1} perchè assente dalle nuove schedulazioni.
+        /// </summary>
+        internal static string CancelJobInfo {
+            get {
+                return ResourceManager.GetString("CancelJobInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Cerca una stringa localizzata simile a Errore recupero configurazioni da database.
         /// </summary>
         internal static string DbError {
@@ -84,6 +93,15 @@ namespace Quartz.WindowsService {
         internal static string HeadlessInfo {
             get {
                 return ResourceManager.GetString("HeadlessInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Cerca una stringa localizzata simile a Inserito nuovo Job id: {0} group: {1} con schedulazione: {2}.
+        /// </summary>
+        internal static string InsertJobInfo {
+            get {
+                return ResourceManager.GetString("InsertJobInfo", resourceCulture);
             }
         }
         
@@ -264,6 +282,15 @@ namespace Quartz.WindowsService {
         internal static string RescheduleJobInfo {
             get {
                 return ResourceManager.GetString("RescheduleJobInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Cerca una stringa localizzata simile a Aggiornato Job id: {0} group: {1} con schedulazione: {2}.
+        /// </summary>
+        internal static string UpdateJobInfo {
+            get {
+                return ResourceManager.GetString("UpdateJobInfo", resourceCulture);
             }
         }
         

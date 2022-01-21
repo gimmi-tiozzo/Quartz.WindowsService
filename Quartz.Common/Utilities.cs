@@ -45,6 +45,28 @@ namespace Quartz.Common
         }
 
         /// <summary>
+        /// Rimpiazza ultima occorenza di una stringa
+        /// </summary>
+        /// <param name="find">Stringa da ricercare</param>
+        /// <param name="replace">Stringa da rimpiazzare</param>
+        /// <param name="str">Stringa completa</param>
+        /// <returns>Stringa con replace ultima occorenza</returns>
+        public static string ReplaceLast(string find, string replace, string str)
+        {
+            int lastIndex = str.LastIndexOf(find);
+
+            if (lastIndex == -1)
+            {
+                return str;
+            }
+
+            string beginString = str.Substring(0, lastIndex);
+            string endString = str.Substring(lastIndex + find.Length);
+
+            return beginString + replace + endString;
+        }
+
+        /// <summary>
         /// Esegui il kill di un processo in base al suo nome
         /// </summary>
         /// <param name="processNames">Nome processi</param>

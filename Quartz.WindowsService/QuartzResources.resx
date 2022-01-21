@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="CancelJobInfo" xml:space="preserve">
+    <value>Eliminato Job id: {0} group: {1} perchè assente dalle nuove schedulazioni</value>
+  </data>
   <data name="DbError" xml:space="preserve">
     <value>Errore recupero configurazioni da database</value>
   </data>
@@ -125,6 +128,9 @@
   </data>
   <data name="HeadlessInfo" xml:space="preserve">
     <value>Avvio in modalità Windows Service (Headless)</value>
+  </data>
+  <data name="InsertJobInfo" xml:space="preserve">
+    <value>Inserito nuovo Job id: {0} group: {1} con schedulazione: {2}</value>
   </data>
   <data name="NewSchedulerInfo" xml:space="preserve">
     <value>Creazione Job e Trigger con configurazione: {0}</value>
@@ -185,6 +191,9 @@
   </data>
   <data name="RescheduleJobInfo" xml:space="preserve">
     <value>Richedulati Job quartz con nuovi piani di esecuzione Cron</value>
+  </data>
+  <data name="UpdateJobInfo" xml:space="preserve">
+    <value>Aggiornato Job id: {0} group: {1} con schedulazione: {2}</value>
   </data>
   <data name="UserInteractiveInfo" xml:space="preserve">
     <value>Avvio in modalità UserInteractive</value>

@@ -1,5 +1,5 @@
-﻿using Quartz.WindowsService.Model;
-using System;
+﻿using Quartz.Common;
+using Quartz.WindowsService.Model;
 
 namespace Quartz.WindowsService.Core
 {
@@ -9,14 +9,24 @@ namespace Quartz.WindowsService.Core
     public class QuartzCore
     {
         /// <summary>
+        /// Prefisso per una chiave di un trigger
+        /// </summary>
+        private const string TriggerPrefix = "_TRIGGER";
+
+        /// <summary>
+        /// Prefisso per una chiave di un Job
+        /// </summary>
+        private const string JobPrefix = "_JOB";
+
+        /// <summary>
         /// Crea un trigger
         /// </summary>
         /// <param name="idRule">Id regola</param>
         /// <param name="batchName">Nome batch</param>
-        /// <returns>Tupla che rappresenta una chiave di un trigger</returns>
-        public static Tuple<string, string> GetTriggerKey(string idRule, string batchName)
+        /// <returns>TriggerKey che rappresenta una chiave di un trigger</returns>
+        public static TriggerKey GetTriggerKey(string idRule, string batchName)
         {
-            return new Tuple<string, string>($"{idRule}_TRIGGER", $"{batchName}_TRIGGER");
+            return new TriggerKey($"{idRule}{TriggerPrefix}", $"{batchName}{TriggerPrefix}");
         }
 
         /// <summary>
@@ -24,10 +34,20 @@ namespace Quartz.WindowsService.Core
         /// </summary>
         /// <param name="idRule">Id regola</param>
         /// <param name="batchName">Nome batch</param>
-        /// <returns>Tupla che rappresenta una chiave di un trigger</returns>
-        public static Tuple<string, string> GetJobKey(string idRule, string batchName)
+        /// <returns>JobKey che rappresenta una chiave di un trigger</returns>
+        public static JobKey GetJobKey(string idRule, string batchName)
         {
-            return new Tuple<string, string>($"{idRule}_JOB", $"{batchName}_JOB");
+            return new JobKey($"{idRule}{JobPrefix}", $"{batchName}{JobPrefix}");
+        }
+
+        /// <summary>
+        /// Ottieni la chiave di un Job dalla chiave di un trigger
+        /// </summary>
+        /// <param name="triggerKey">Chiave trigger</param>
+        /// <returns>Chiave Job</returns>
+        public static JobKey GetJobKeyByTriggerKey(TriggerKey triggerKey)
+        {
+            return new JobKey(Utilities.ReplaceLast(TriggerPrefix, JobPrefix, triggerKey.Name), Utilities.ReplaceLast(TriggerPrefix, JobPrefix, triggerKey.Group));
         }
 
         /// <summary>
@@ -37,8 +57,8 @@ namespace Quartz.WindowsService.Core
         /// <returns>Nuovo Job</returns>
         public static IJobDetail CreateNewJob(BatchScheduleConfiguration schedule)
         {
-            var jobKey = GetJobKey(schedule.IdRule, schedule.BatchName);
-            IJobDetail job = JobBuilder.Create<ProcessJob>().WithIdentity(jobKey.Item1, jobKey.Item2).Build();
+            JobKey jobKey = GetJobKey(schedule.IdRule, schedule.BatchName);
+            IJobDetail job = JobBuilder.Create<ProcessJob>().WithIdentity(jobKey.Name, jobKey.Group).Build();
             job.JobDataMap.Put(ProcessJob.JobDataMapName, schedule);
 
             return job;
@@ -51,8 +71,8 @@ namespace Quartz.WindowsService.Core
         /// <returns>Nuovo Trigger</returns>
         public static ITrigger CreateNewTrigger(BatchScheduleConfiguration schedule)
         {
-            var tupleKey = GetTriggerKey(schedule.IdRule, schedule.BatchName);
-            ITrigger trigger = TriggerBuilder.Create().WithIdentity(tupleKey.Item1, tupleKey.Item2).WithCronSchedule(schedule.CronExpression).Build();
+            TriggerKey tupleKey = GetTriggerKey(schedule.IdRule, schedule.BatchName);
+            ITrigger trigger = TriggerBuilder.Create().WithIdentity(tupleKey.Name, tupleKey.Group).WithCronSchedule(schedule.CronExpression).Build();
 
             return trigger;
         }
