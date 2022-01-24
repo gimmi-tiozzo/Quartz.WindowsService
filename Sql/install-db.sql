@@ -9,7 +9,7 @@ GO
 /****** Tabella che rappresenta le schedulazioni batch di processi per i vari server ******/
 CREATE TABLE [dbo].[SCHEDULAZIONI_SERVIZI](
 	[ID_REGOLA] [varchar](30) NOT NULL,
-	[ESPRESSIONE_CRON] [varchar](50) NOT NULL,
+	[ESPRESSIONE_CRON] [varchar](1000) NOT NULL,
 	[NOME_BATCH] [varchar](100) NOT NULL,
 	[NOME_SERVER] [varchar](100) NOT NULL,
 	[PATH_PROCESSO_ROOT] [varchar](100) NOT NULL,
