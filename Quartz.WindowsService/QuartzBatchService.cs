@@ -96,23 +96,20 @@ namespace Quartz.WindowsService
         /// </summary>
         private void SetupScheduler(List<BatchScheduleConfiguration> schedules)
         {
-            //dizionario dei job con relativi trigger di attivazione
-            var jobsAndTriggers = new Dictionary<IJobDetail, Quartz.Collection.ISet<ITrigger>>();
-
             foreach (BatchScheduleConfiguration schedule in schedules)
             {
                 Logger.Information(String.Format(QuartzResources.NewSchedulerInfo, schedule));
 
                 //definisci il Job (azione da eseguire)
                 IJobDetail job = QuartzCore.CreateNewJob(schedule);
-                //definisci il trigger (calendario) di tipo Cron (https://www.freeformatter.com/cron-expression-generator-quartz.html). es 0/5 * 8-17 * * ?
-                ITrigger trigger = QuartzCore.CreateNewTrigger(schedule);
 
-                jobsAndTriggers.Add(job, new Quartz.Collection.HashSet<ITrigger>() { trigger });
+                //definisci il trigger (calendario) di tipo Cron
+                List<ITrigger> triggers = QuartzCore.CreateNewTriggersForJob(schedule, job);
+
+                //configura il job
+                Scheduler.AddJob(job, true);
+                triggers.ForEach(trigger => Scheduler.ScheduleJob(trigger));
             }
-
-            //configura lo schedulatore
-            Scheduler.ScheduleJobs(jobsAndTriggers, true);
         }
 
         /// <summary>
@@ -125,7 +122,7 @@ namespace Quartz.WindowsService
             foreach (BatchScheduleConfiguration schedule in schedules)
             {
                 //calcola la chiave del trigger associata al processo
-                TriggerKey triggerKey = QuartzCore.GetTriggerKey(schedule.IdRule, schedule.BatchName);
+                TriggerKey triggerKey = QuartzCore.GetFirstTriggerKey(schedule.IdRule, schedule.IdRule);
 
                 //cerca il trigger per capire se eseguire un update (rischedulazione) o una schedulazione (nuovo Job)
                 ITrigger oldTrigger = Scheduler.GetTrigger(triggerKey);
@@ -133,21 +130,25 @@ namespace Quartz.WindowsService
                 if (oldTrigger != null)
                 {
                     IJobDetail newJob = QuartzCore.CreateNewJob(schedule);
-                    ITrigger newTrigger = QuartzCore.CreateNewTrigger(schedule);
+                    List<ITrigger> newTriggers = QuartzCore.CreateNewTriggersForJob(schedule, newJob);
 
                     //update: delete & insert job + trigger
                     JobKey updateKey = QuartzCore.GetJobKeyByTriggerKey(triggerKey);
                     Scheduler.DeleteJob(updateKey);
-                    Scheduler.ScheduleJob(newJob, newTrigger);
+                    Scheduler.AddJob(newJob, true);
+                    newTriggers.ForEach(trigger => Scheduler.ScheduleJob(trigger));
+                    
                     Logger.Information(String.Format(QuartzResources.UpdateJobInfo, updateKey.Name, updateKey.Group, schedule));
                 }
                 else
                 {
                     IJobDetail newJob = QuartzCore.CreateNewJob(schedule);
-                    ITrigger newTrigger = QuartzCore.CreateNewTrigger(schedule);
+                    List<ITrigger> newTriggers = QuartzCore.CreateNewTriggersForJob(schedule, newJob);
 
                     //New: insert Job (job & trigger)
-                    Scheduler.ScheduleJob(newJob, newTrigger);
+                    Scheduler.AddJob(newJob, true);
+                    newTriggers.ForEach(trigger => Scheduler.ScheduleJob(trigger));
+
                     Logger.Information(String.Format(QuartzResources.InsertJobInfo, newJob.Key.Name, newJob.Key.Group, schedule));
                 }
             }
@@ -157,12 +158,16 @@ namespace Quartz.WindowsService
 
             foreach (TriggerKey triggerKey in allTriggerKeys)
             {
-                if (!schedules.Any(s => QuartzCore.GetTriggerKey(s.IdRule, s.BatchName).Name == triggerKey.Name))
+                if (!schedules.Any(s => QuartzCore.GetTriggerKey(s.IdRule, s.IdRule).Group == triggerKey.Group))
                 {
                     //Cancel: delete Job (job)
                     JobKey deleteKey = QuartzCore.GetJobKeyByTriggerKey(triggerKey);
-                    Scheduler.DeleteJob(deleteKey);
-                    Logger.Information(String.Format(QuartzResources.CancelJobInfo, deleteKey.Name, deleteKey.Group));
+
+                    if (Scheduler.CheckExists(deleteKey))
+                    {
+                        Scheduler.DeleteJob(deleteKey);
+                        Logger.Information(String.Format(QuartzResources.CancelJobInfo, deleteKey.Name, deleteKey.Group));
+                    }
                 }
             }
         }
@@ -387,11 +392,7 @@ namespace Quartz.WindowsService
                 try
                 {
                     Logger.Information(QuartzResources.OnPauseInfo);
-
-                    if (Scheduler != null)
-                    {
-                        Scheduler.PauseAll();
-                    }
+                    Scheduler?.PauseAll();
                 }
                 catch (Exception err)
                 {
@@ -410,11 +411,7 @@ namespace Quartz.WindowsService
                 try
                 {
                     Logger.Information(QuartzResources.OnContinueInfo);
-
-                    if (Scheduler != null)
-                    {
-                        Scheduler.ResumeAll();
-                    }
+                    Scheduler?.ResumeAll();
                 }
                 catch (Exception err)
                 {
